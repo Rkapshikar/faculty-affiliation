@@ -1,0 +1,420 @@
+
+{% extends 'affiliation/base.html' %}
+{% load static from staticfiles %}
+
+{% block title %}Faculty Affiliation | The Daily Californian{% endblock %}
+
+{% block content %}
+
+<div class="col-md-8 col-md-offset-2 topper">
+
+	<h5 id="faculty-title">Faculty Affiliation</h5>
+
+	<div class="links">
+		<li><a href="https://www.facebook.com/sharer/sharer.php?u=projects.dailycal.org/misconduct/"><i class="fa fa-lg fa-facebook"></i></a></li>
+		<li><a href="https://twitter.com/intent/tweet?url=http%3A%2F%2Fprojects.dailycal.org%2Fmisconduct&via=dailycal&text=The%20Daily%20Californian%27s%20sexual%20misconduct%20database"><i class="fa fa-lg fa-twitter"></i></a></li>
+		<li><a href="mailto:hi@example.com?Subject=Daily%20Californian%20Sexual%20Misconduct%20Database&Body=http%3A//projects.dailycal.org/misconduct/"><i class="fa fa-lg fa-envelope"></i></a></li>
+	</div>
+</div>
+
+
+
+<div id="list-wrapper" class="col-md-8 col-md-offset-2">
+	<hr>
+
+	<br />
+
+	<form id="filter-form" class="form-inline">
+		<div class="form-group dropdown">
+			<button class="datebtn btn-primary dropdown-toggle" type="button" id="dept-dropdown"
+			        data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+			  All departments
+			  <span class="caret"></span>
+			</button>
+			<ul class="dropdown-menu" aria-labelledby="dept-dropdown" id="dept-drop">
+			  <li><a id="1" data-dept="All Departments">All departments</a></li>
+			  <li><a id="2" data-dept="Economics">Economics</a></li>
+			  <li><a id="3" data-dept="EECS">EECS</a></li>
+			</ul>	
+		</div>
+	</form>
+		
+	<br />
+	</div>
+
+</div>
+
+</div>
+
+<svg width="960" height="500"></svg>
+{% endblock %}
+
+{% block extra-css %}
+<style>
+
+.topper {
+	text-align: center;
+}
+.links {
+	margin: 0 auto;
+	text-align: center;
+}
+.links li {
+	display: inline;
+	margin: 0 10px;
+}
+.links li a {
+	color: #393966;
+	font-size: 16px;
+}
+.links li a:hover {
+	color: #000;
+}
+
+#faculty-title {
+	text-align: center;
+	font-size: 50px;
+	font-weight: bold;
+	font-family: "Bodoni MT", Didot, "Didot LT STD", "Hoefler Text", Garamond, "Times New Roman", serif;
+	margin-top: 50px;
+	margin-bottom: 35px;
+}
+
+.separator-top {
+	height: 2px;
+	margin: 20px auto;
+	width: 60%;
+	background-color: #393966;
+	margin-bottom: 50px;
+}
+.separator-bottom {
+	height: 1px;
+	margin: 20px auto;
+	width: 30%;
+}
+.separator-last2 {
+	height: 1px;
+	margin: 10px auto;
+	width: 50%;
+	background-color: #aaa;
+	margin-bottom: 40px;
+	margin-top: px;
+}
+.btn-primary {
+	background-color: #e7e7e7;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  color: black;
+  font-size: 13px;
+  padding: 5px 15px 5px 15px;
+  cursor: pointer;
+  font-weight: 100;
+  letter-spacing: 1px;
+  text-align: center;
+  text-transform: uppercase;
+  border: none;
+  width: 200px;
+}
+h3 a {
+	/*color: #000;*/
+}
+h3 a:hover {
+	/*color: #000;*/
+	opacity: 0.4;
+}
+h4 {
+	font-weight: 400;
+}
+.labels {
+	font-size: 14px;
+	font-weight: 400;
+	text-transform: uppercase;
+	letter-spacing: .5px;
+}
+
+.axis .domain {
+  display: none;
+}
+
+body {
+  background-color: #F1F3F3    
+}
+
+.toolTip {
+  position: absolute;
+  display: none;
+  min-width: 80px;
+  height: auto;
+  background: none repeat scroll 0 0 #ffffff;
+  border: 1px solid #6F257F;
+  padding: 14px;
+  text-align: center;
+}
+
+
+</style>
+{% endblock %}
+
+
+<!-- THIS IS U -->
+<style>
+
+
+
+</style>
+
+{% block extra-js %}
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var color = d3.scaleOrdinal(d3.schemeCategory20b);
+var color2 = d3.scaleOrdinal(d3.schemeCategory20c);
+
+
+
+var svg = d3.select("svg"),
+    margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom
+
+
+var x = d3.scaleBand()
+    .rangeRound([50, 300])
+    .padding(0.3)
+    .align(0.1);
+
+var y = d3.scaleLinear()
+    .rangeRound([height, 0]);
+
+var tooltip = d3.select("body").append("div").attr("class", "toolTip");
+
+// var z = d3.scaleOrdinal()
+//     .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+
+var schools_A = [];
+var schools_B = [];
+var schools = [];
+var schools_ugrad = [];
+var dept = 'All Departments';
+
+var total = 0;
+
+$("#dept-drop li").click(function() {
+  	dept = $(this).data('dept') || dept
+	handleClick(dept)
+	});
+
+  function handleClick(education) { // event handler...
+	console.log(education);
+	schools_A = [];
+	schools_B = [];
+	schools = [];
+	schools_ugrad = [];
+	total = 0;
+	d3.csv("static/affiliation/js/cleaned_affiliation.csv", function(d) {
+
+		if (dept == 'All Departments' || dept == d.Subject) {
+			schools_A.push({key: d.PhD});
+  			schools_B.push({key: d.Undergraduate, value: d.Name})
+  			total += 1;
+
+  			return {
+  			name: d.Name,
+  			grad: d.PhD,
+  			total: total,
+  			number: 1};
+		}
+	}, function(error, data) {
+	  if (error) throw error;
+	  var filtered_data = data;
+	  makeDataGraph(filtered_data);
+	});
+  }
+
+
+	d3.csv("static/affiliation/js/cleaned_affiliation.csv", function(d) {
+  		schools_A.push({key: d.PhD});
+  		schools_B.push({key: d.Undergraduate, value: d.Name})
+  		total += 1;
+
+  		return {
+  		name: d.Name,
+  		grad: d.PhD,
+  		total: total,
+  		number: 1};
+
+	}, function(error, data) {
+	  if (error) throw error;
+	  var filtered_data = data;
+	  makeDataGraph(filtered_data);
+	});
+
+
+
+
+function makeDataGraph(data) {
+	 var expensesTotal = d3.nest()
+  .key(function(d) { 
+  	return d.grad
+  })
+  .rollup(function(v) { return d3.sum(v, function(d) { return d.number; }); })
+  .entries(data);
+
+  var totalz = {};
+
+console.log(expensesTotal);
+  for (e in expensesTotal) {
+  	console.log(expensesTotal[e].key)
+  	totalz[expensesTotal[e].key] = expensesTotal[e].value
+  }
+console.log(totalz);
+
+  // var keys = data.columns.slice(1);
+
+  // data.sort(function(a, b) { return b.total - a.total; });
+
+
+  // x.domain(data.map(function(d) { return d.State; }));
+  x.domain(["Undergraduate","PhD"]);
+  y.domain([0, d3.max(data, function(d) { return d.total; })]).nice();
+  // y.domain([0, d.]);
+  // z.domain(keys);
+  schools_A.sort(function(a,b) {
+  	    if(a.key.toLowerCase() < b.key.toLowerCase()) return -1;
+    	return 1;
+  });
+
+    schools_B.sort(function(a,b) {
+  	    if(a.key.toLowerCase() < b.key.toLowerCase()) return -1;
+    	return 1;
+  });
+
+
+var heightRect = height/(total-10);
+
+var high = 1;
+for (s in schools_A) {
+	  schools.push({
+  		key: schools_A[s].key,
+  		val: high
+  });
+	high = high + 1;
+}
+
+high = 1;
+for (s in schools_A) {
+	  schools_ugrad.push({
+  		key: schools_B[s].key,
+  		name: schools_B[s].value,
+  		val: high
+  });
+	high = high + 1;
+}
+
+
+    svg.selectAll("g").data([]).exit().remove()
+    g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+  g.append("g")
+    .selectAll("g")
+    .data(schools)
+    .enter().append("rect")
+      .attr("x", x("PhD"))
+      .attr("y", function(d) { return y(d.val); })
+      .attr("height", heightRect)
+      .attr("width", x.bandwidth())
+            // .attr("fill", function(d) {; return color(d.key); });
+      .attr("fill", function(d) {
+      	if (d.val < total/2) {
+      		return color(d.key);
+      	} else {
+      		return color2(d.key); 
+      	}
+      })
+      .on("mousemove", function(d){
+    tooltip
+      .style("left", d3.event.pageX - 50 + "px")
+      .style("top", d3.event.pageY - 70 + "px")
+      .style("display", "inline-block")
+      .html((d.key) + "<br>" + (totalz[d.key]));
+})
+	.on("mouseout", function(d){ tooltip.style("display", "none");});
+
+  g.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  g.append("g")
+      .attr("class", "axis")
+      .call(d3.axisLeft(y).ticks(null, "s"))
+
+
+  g.append("g")
+    .selectAll("g")
+    .data(schools_ugrad)
+    .enter().append("rect")
+      .attr("x", x("Undergraduate"))
+      .attr("y", function(d) { return y(d.val); })
+      .attr("height", heightRect)
+      .attr("width", x.bandwidth())
+     .attr("fill", function(d) {
+      	if (d.val > (total/2)) {
+      		return color(d.key);
+      	} else {
+      		return color2(d.key); 
+      	}
+      })
+    .on("mousemove", function(d){
+    tooltip
+      .style("left", d3.event.pageX - 50 + "px")
+      .style("top", d3.event.pageY - 70 + "px")
+      .style("display", "inline-block")
+      .html((d.name) + "<br>" + (d.key));
+})
+	.on("mouseout", function(d){ tooltip.style("display", "none");});
+;
+
+    // .append("text")
+    //   .attr("x", 2)
+    //   .attr("y", y(y.ticks().pop()) + 0.5)
+    //   .attr("dy", "0.32em")
+    //   .attr("fill", "#000")
+    //   .attr("font-weight", "bold")
+    //   .attr("text-anchor", "start")
+    //   .text("Population");
+
+  // var legend = g.append("g")
+  //     .attr("font-family", "sans-serif")
+  //     .attr("font-size", 10)
+  //     .attr("text-anchor", "end")
+  //   .selectAll("g")
+  //   .data(keys.slice().reverse())
+  //   .enter().append("g")
+  //     .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+  // legend.append("rect")
+  //     .attr("x", width - 19)
+  //     .attr("width", 19)
+  //     .attr("height", 19)
+  //     .attr("fill", z);
+
+  // legend.append("text")
+  //     .attr("x", width - 24)
+  //     .attr("y", 9.5)
+  //     .attr("dy", "0.32em")
+  //     .text(function(d) { return d; });
+};
+
+
+$('.dropdown-menu li a').click(function() {
+	// Get the year and campus
+	dept = $(this).data('dept') || year;
+	// Update the dropdowns
+	$('#dept-dropdown').html(dept + ' <span class="caret"></span>');
+
+
+});
+
+</script>
+{% endblock %}
