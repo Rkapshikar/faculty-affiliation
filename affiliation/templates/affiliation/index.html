@@ -46,7 +46,15 @@
 
 </div>
 
-<svg width="960" height="500"></svg>
+<svg width="960" height="600">
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refx="0" refy="3" orient="auto" markerUnits="strokeWidth" viewBox="0 0 20 20">
+      <path d="M0,0 L0,6 L9,3 z" fill="#d3d3d3" />
+    </marker>
+  </defs>
+
+  </svg>
 {% endblock %}
 
 {% block extra-css %}
@@ -139,14 +147,13 @@ body {
   background-color: #F1F3F3    
 }
 
-.toolTip {
+.toolTip  {
   position: absolute;
   display: none;
-  min-width: 80px;
   height: auto;
   background: none repeat scroll 0 0 #ffffff;
   border: 1px solid #6F257F;
-  padding: 14px;
+  padding: 5px;
   text-align: center;
 }
 
@@ -178,14 +185,15 @@ var svg = d3.select("svg"),
 
 
 var x = d3.scaleBand()
-    .rangeRound([50, 300])
-    .padding(0.3)
+    .rangeRound([50, 700])
+    .padding(0.8)
     .align(0.1);
 
-var y = d3.scaleLinear()
-    .rangeRound([height, 0]);
+var y = d3.scaleLinear().nice()
+    .range([height, 0]);
 
 var tooltip = d3.select("body").append("div").attr("class", "toolTip");
+
 
 // var z = d3.scaleOrdinal()
 //     .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
@@ -194,6 +202,9 @@ var schools_A = [];
 var schools_B = [];
 var schools = [];
 var schools_ugrad = [];
+var coordinates_grad = [];
+var coordinates_ugrad = [];
+var undergrad_lines = [];
 var dept = 'All Departments';
 
 var total = 0;
@@ -209,12 +220,16 @@ $("#dept-drop li").click(function() {
 	schools_B = [];
 	schools = [];
 	schools_ugrad = [];
+  coordinates_ugrad = [];
+  coordinates_grad = [];
+  undergrad_lines = []
 	total = 0;
 	d3.csv("static/affiliation/js/cleaned_affiliation.csv", function(d) {
 
 		if (dept == 'All Departments' || dept == d.Subject) {
-			schools_A.push({key: d.PhD});
-  			schools_B.push({key: d.Undergraduate, value: d.Name})
+			schools_A.push({key: d.PhD, value: d.Name, idNum: d.Id});
+  			schools_B.push({key: d.Undergraduate, value: d.Name, idNum: d.Id})
+              undergrad_lines[d.Id] = d.Undergraduate
   			total += 1;
 
   			return {
@@ -232,8 +247,9 @@ $("#dept-drop li").click(function() {
 
 
 	d3.csv("static/affiliation/js/cleaned_affiliation.csv", function(d) {
-  		schools_A.push({key: d.PhD});
-  		schools_B.push({key: d.Undergraduate, value: d.Name})
+  		schools_A.push({key: d.PhD, value: d.Name, idNum: d.Id});
+  		schools_B.push({key: d.Undergraduate, value: d.Name, idNum: d.Id})
+      undergrad_lines[d.Id] = d.Undergraduate
   		total += 1;
 
   		return {
@@ -261,21 +277,13 @@ function makeDataGraph(data) {
 
   var totalz = {};
 
-console.log(expensesTotal);
   for (e in expensesTotal) {
-  	console.log(expensesTotal[e].key)
   	totalz[expensesTotal[e].key] = expensesTotal[e].value
   }
-console.log(totalz);
 
-  // var keys = data.columns.slice(1);
-
-  // data.sort(function(a, b) { return b.total - a.total; });
-
-
-  // x.domain(data.map(function(d) { return d.State; }));
   x.domain(["Undergraduate","PhD"]);
-  y.domain([0, d3.max(data, function(d) { return d.total; })]).nice();
+  y.domain([0, d3.max(data, function(d) {
+    return d.total; })]).nice();
   // y.domain([0, d.]);
   // z.domain(keys);
   schools_A.sort(function(a,b) {
@@ -289,12 +297,14 @@ console.log(totalz);
   });
 
 
-var heightRect = height/(total-10);
+var heightRect = height/(total);
 
 var high = 1;
 for (s in schools_A) {
 	  schools.push({
   		key: schools_A[s].key,
+      name: schools_A[s].value,
+      id: schools_A[s].idNum,
   		val: high
   });
 	high = high + 1;
@@ -305,12 +315,13 @@ for (s in schools_A) {
 	  schools_ugrad.push({
   		key: schools_B[s].key,
   		name: schools_B[s].value,
+      id: schools_B[s].idNum,
   		val: high
   });
 	high = high + 1;
 }
 
-
+  
     svg.selectAll("g").data([]).exit().remove()
     g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -320,7 +331,11 @@ for (s in schools_A) {
     .data(schools)
     .enter().append("rect")
       .attr("x", x("PhD"))
-      .attr("y", function(d) { return y(d.val); })
+      .attr("y", function(d) {
+        coordinates_grad[d.id] = y(d.val);
+
+        return y(d.val); 
+      })
       .attr("height", heightRect)
       .attr("width", x.bandwidth())
             // .attr("fill", function(d) {; return color(d.key); });
@@ -333,10 +348,13 @@ for (s in schools_A) {
       })
       .on("mousemove", function(d){
     tooltip
-      .style("left", d3.event.pageX - 50 + "px")
-      .style("top", d3.event.pageY - 70 + "px")
+      .style("left", d3.event.pageX - 10 + "px")
+      .style("top", d3.event.pageY - 10 + "px")
       .style("display", "inline-block")
-      .html((d.key) + "<br>" + (totalz[d.key]));
+      .html((d.key) + "<br>" + (totalz[d.key]))
+
+
+
 })
 	.on("mouseout", function(d){ tooltip.style("display", "none");});
 
@@ -355,7 +373,10 @@ for (s in schools_A) {
     .data(schools_ugrad)
     .enter().append("rect")
       .attr("x", x("Undergraduate"))
-      .attr("y", function(d) { return y(d.val); })
+      .attr("y", function(d) { 
+        coordinates_ugrad[d.id] = y(d.val);
+        return y(d.val); 
+      })
       .attr("height", heightRect)
       .attr("width", x.bandwidth())
      .attr("fill", function(d) {
@@ -365,7 +386,7 @@ for (s in schools_A) {
       		return color2(d.key); 
       	}
       })
-    .on("mousemove", function(d){
+    .on("mouseover", function(d){
     tooltip
       .style("left", d3.event.pageX - 50 + "px")
       .style("top", d3.event.pageY - 70 + "px")
@@ -375,14 +396,30 @@ for (s in schools_A) {
 	.on("mouseout", function(d){ tooltip.style("display", "none");});
 ;
 
-    // .append("text")
-    //   .attr("x", 2)
-    //   .attr("y", y(y.ticks().pop()) + 0.5)
-    //   .attr("dy", "0.32em")
-    //   .attr("fill", "#000")
-    //   .attr("font-weight", "bold")
-    //   .attr("text-anchor", "start")
-    //   .text("Population");
+
+  g.append("g")
+    .selectAll("g")
+    .data(schools)
+      .enter().append('line')
+    .attr("x1", x("Undergraduate") + x.bandwidth() + 5)
+    .attr("y1", function(d) {return coordinates_ugrad[d.id]})
+    .attr("x2", x("PhD") - 15)
+    .attr("y2", function(d) {return coordinates_grad[d.id]})
+    .attr("stroke", "#d3d3d3")
+    .attr("stroke-width",1)
+    .attr("marker-end", "url(#arrow)")
+    .on("mouseover", function(d){
+    d3.select(this).attr("stroke", "black").style("fill", "black");
+    tooltip
+      .style("left", d3.event.pageX + 30  + "px")
+      .style("top", d3.event.pageY - 70 + "px")
+      .style("display", "inline-block")
+      .html( "<p><font size=1>" + (d.name) + "<br>" + "Undergrad: " +  (undergrad_lines[d.id]) + "<br>" + "PhD: " + (d.key) + "</font></p>");
+    })
+    .on("mouseout", function(d) {
+    d3.select(this).attr("stroke", "#d3d3d3").style("fill", "#d3d3d3");
+    });
+// '<div style="width: 160px;"><p>Old text old text old text old text old text old text<p></div>'
 
   // var legend = g.append("g")
   //     .attr("font-family", "sans-serif")
